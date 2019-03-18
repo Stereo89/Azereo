@@ -43,7 +43,7 @@ Switch to get only Processor info (on storage).
 
 ## .EXAMPLE
 ## Create a report of the Processor blobs status on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
-   Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -ProcessorOnly
+    Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -ProcessorOnly
 
 ## .OUTPUTS
   A .csv file (file name will be in the form eventhubname_yyyyMMdd.csv or eventhubnamePO_yyyyMMdd.csv in case of ProcessorOnly switch)
