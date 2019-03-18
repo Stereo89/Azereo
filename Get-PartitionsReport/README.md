@@ -28,14 +28,27 @@ The output path where the .csv report will be saved/updated.
 
 ## .PARAMETER **InputFile**
 The absolute or relative path of the input file containing required parameters.
+You can find an example of the input file here: https://github.com/Stereo89/Azereo/blob/master/Get-PartitionsReport/inputTemplate.txt
 
-## .PARAMETER **Clipboard**
-Switch to export result to clipboard. Available on Windows.
+## .PARAMETER **ProcessorOnly**
+Switch to get only Processor info (on storage).
+
 ##  .EXAMPLE
-## Create a report on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt and copy the result to clipboard.
-    Get-Partitions -InputFile C:\users\<username>\inputFile.txt -OutputPath C:\Export\ -Clipboard
-(Clipboard option available on Windows Platform)
+## Create a report on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
+    Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath C:\Export\
 
 ## .EXAMPLE
 ## Create a report on directory C:\Export\
-    Get-Partitions -EventHubConnectionString <EventHubConnectionString> -StorageName <StorageName> -StorageKey <StorageKey> -ContainerName <ContainerName> -ConsumerGroupFolder <ConsumerGroupFolder> -OutputPath "C:\Export\"
+    Get-PartitionsReport -EventHubConnectionString <EventHubConnectionString> -StorageName <StorageName> -StorageKey <StorageKey> -ContainerName <ContainerName> -ConsumerGroupFolder <ConsumerGroupFolder> -OutputPath "C:\Export\"
+
+## .EXAMPLE
+## Create a report of the Processor blobs status on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
+   Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -ProcessorOnly
+
+## .OUTPUTS
+  A .csv file (file name will be in the form eventhubname_yyyyMMdd.csv or eventhubnamePO_yyyyMMdd.csv in case of ProcessorOnly switch)
+  PartitionBlob list object in case of -ProcessorOnly switch
+  PartitionCompare list object if -ProcessorOnly switch is NOT used
+
+## .LINK
+  https://github.com/Stereo89/Azereo/tree/master/Get-PartitionsReport

@@ -25,7 +25,7 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Owner</Label>
-            <Width>23</Width>
+            <Width>30</Width>
             <Alignment>Left</Alignment>
           </TableColumnHeader>
           <TableColumnHeader>

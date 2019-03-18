@@ -3,11 +3,11 @@
 function Get-PartitionsReport {
 <# 
  .SYNOPSIS
-  Create/update a .csv report based on consumer group blobs and an Azure EventHub (or Azure IoTHub) and return a list PartitionCompare objects.
+  Create/update a .csv report based on consumer group blobs and an Azure EventHub (or Azure IoTHub) and return a PartitionCompare/PartitionBlob objects list.
 
  .DESCRIPTION
-  Create/update a .csv report based on consumer group blobs and an Azure EventHub (or Azure IoTHub) and return a list PartitionCompare objects.
-  The .csv file name will be in the form eventhubname_yyyyMMdd.csv
+  Create/update a .csv report based on consumer group blobs and an Azure EventHub (or Azure IoTHub) and return a PartitionCompare/PartitionBlob objects list.
+  The .csv file name will be in the form eventhubname_yyyyMMdd.csv or eventhubnamePO_yyyyMMdd.csv in case of ProcessorOnly switch
   
  .PARAMETER EventHubConnectionString
   The EventHub connection string to query.
@@ -30,40 +30,63 @@ function Get-PartitionsReport {
 
   .PARAMETER InputFile
   The absolute or relative path of the input file containing required parameters.
-
-  .PARAMETER Clipboard
-  Switch to export result to clipboard. Available on Windows.
+  You can find an example of the input file here: https://github.com/Stereo89/Azereo/blob/master/Get-PartitionsReport/inputTemplate.txt
+  
+  .PARAMETER ProcessorOnly
+  Switch to get only Processor info (on storage).
 
  .EXAMPLE
-   # Create a report on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt and copy the result to clipboard.
-   Get-Partitions -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -Clipboard (Clipboard option available on Windows Platform)
+   # Create a report on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
+   Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\"
 
  .EXAMPLE
    # Create a report on directory C:\Export\
-   Get-Partitions -EventHubConnectionString <EventHubConnectionString> -StorageName <StorageName> `
+   Get-PartitionsReport -EventHubConnectionString <EventHubConnectionString> -StorageName <StorageName> `
         -StorageKey <StorageKey> -ContainerName <ContainerName> -ConsumerGroupFolder <ConsumerGroupFolder> -OutputPath "C:\Export\"
-#>
-    [OutputType('PartitionCompare')]
-    [cmdletbinding(DefaultParameterSetName='InputFile')]
+ 
+ .EXAMPLE
+   # Create a report of the Processor blobs status on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
+   Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -ProcessorOnly
 
+ .OUTPUTS
+  A .csv file (file name will be in the form eventhubname_yyyyMMdd.csv or eventhubnamePO_yyyyMMdd.csv in case of ProcessorOnly switch)
+  PartitionBlob objects list in case of -ProcessorOnly switch
+  PartitionCompare object list if -ProcessorOnly switch is NOT used
+
+ .LINK
+  https://github.com/Stereo89/Azereo/tree/master/Get-PartitionsReport
+
+#>
+    
+    [cmdletbinding(DefaultParameterSetName='InputFile')]
+    [OutputType('PartitionCompare', ParameterSetName="Nofile")]
+    [OutputType('PartitionCompare', ParameterSetName="InputFile")]
+    [OutputType('PartitionBlob', ParameterSetName="ProcessorNoFile")]
+    [OutputType('PartitionBlob', ParameterSetName="ProcessorWithFile")]
+    
     Param(
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='NoFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorNoFile')]
         [Alias("EH", "EventHub", "EHConnString")]
         [string] $EventHubConnectionString,
 
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='NoFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorNoFile')]
         [Alias("SN")]
         [string] $StorageName,
 
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='NoFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorNoFile')]
         [Alias("SK")]
         [string] $StorageKey,
 
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='NoFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorNoFile')]
         [Alias("Container")]
         [string] $ContainerName,
 
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='NoFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorNoFile')]
         [Alias("ConsumerGroup", "CG")]
         [string] $ConsumerGroupFolder,
 
@@ -72,10 +95,16 @@ function Get-PartitionsReport {
         [string] $OutputPath,
 
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='InputFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorWithFile')]
         [Alias("Input")]
-        [string] $InputFile
+        [string] $InputFile,
+        
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorNoFile')]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true, ParameterSetName='ProcessorWithFile')]
+        [System.Management.Automation.SwitchParameter] $ProcessorOnly 
     )
 
+    <# Removing until a clip command will be available on all platforms
     DynamicParam
         {
             if($IsWindows)
@@ -94,6 +123,17 @@ function Get-PartitionsReport {
                 $AttributeCollection.Add($ParamAlias)
                 
                 <#
+
+                Notes:
+                . PARAMETER Clipboard
+                Switch to export result to clipboard. Available on Windows.
+
+                . EXAMPLE
+                # Create a report on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt and copy the result to clipboard.
+                Get-Partitions -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -Clipboard (Clipboard option available on Windows Platform)
+
+
+
                 [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
                 [Alias("Clip")]
                 [switch] $Clipboard
@@ -102,8 +142,8 @@ function Get-PartitionsReport {
                 
                 $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($ValidationValues)
                 $AttributeCollection.Add($ValidateSetAttribute)
-                #>
                 
+                ##############
                 # End Dynamic parameter definition
                 
                 # When done building dynamic parameters, return
@@ -115,10 +155,11 @@ function Get-PartitionsReport {
                 return $RuntimeParameterDictionary
             }
             
-        }
+            
+        }#>
         begin {
             
-            if($PSCmdlet.ParameterSetName -eq "InputFile"){
+            if($PSCmdlet.ParameterSetName -eq "InputFile" -or $PSCmdlet.ParameterSetName -eq "ProcessorWithFile" ){
                 
                 if(!(Test-Path -Path $InputFile -PathType Leaf)) {
                     throw ("Input File '$InputFile' doesn't exists or it is a directory")
@@ -126,7 +167,7 @@ function Get-PartitionsReport {
                 else{
                     
                     $inputFileContent = (Get-Content $InputFile) -split "`n"
-        
+                    
                     $EventHubConnectionString = ($inputFileContent | Where-Object {$_.StartsWith("EventHubConnectionString=")}).Trim().TrimEnd(";")
                     
                     $StorageName = ($inputFileContent | Where-Object {$_.StartsWith("StorageName=")}).Trim()
@@ -301,7 +342,11 @@ function Get-PartitionsReport {
                 $match = $regex.Match($eventhubNamespace)
             
                 $FilePrefix = $match.Groups[1].ToString()
-            }   
+            }
+
+            if($ProcessorOnly.IsPresent){
+                $FilePrefix+="PO"
+            }
 
             $pattern = "SharedAccessKeyName=(\w+)"
             $regex = [Regex]::new($pattern)
@@ -324,6 +369,7 @@ function Get-PartitionsReport {
             if(!($EventHubConnectionString -and $eventhubNamespace -and $eventhubName -and $ConsumerGroupFolder -and $ContainerName -and $StorageName -and $StorageKey))
             {
                 Write-Verbose "Parameters parse failed"
+                Write-Verbose "$EventHubConnectionString`n$eventhubNamespace`n$eventhubName`n$ConsumerGroupFolder`n$ContainerName`n$StorageName"
                 throw ("Input parameters wrong format")
             }
 
@@ -346,8 +392,8 @@ function Get-PartitionsReport {
             Remove-Item -Path $consumerTempFolder\* -Force
 
             #Temporary Arrays
-            $PartitionsBlobs = [System.Collections.ArrayList]::new()
-            $RestPartitions = [System.Collections.ArrayList]::new()
+            $PartitionsBlobs = [System.Collections.Generic.List[PartitionBlob]]::new()
+            $RestPartitions = [System.Collections.Generic.List[RestPartition]]::new()
 
             $partitionCount = $response.Count
             
@@ -358,30 +404,32 @@ function Get-PartitionsReport {
                 $startElaboration = Get-Date
                 #Calculate percentage $i:$partitionCount=Percentage:100
                 Write-Progress -Activity "Getting partition $($i+1) of $partitionCount" -Status "$([System.Math]::Floor((($i*100)/$partitionCount)))% Complete:" -PercentComplete ([System.Math]::Floor((($i*100)/$partitionCount)))
+                
+                if(!($ProcessorOnly.IsPresent)){
+                    #Retrieving Eventhub information
+                    Write-Host "`tQuerying partition: #$i"
+                    $EH_Rest_Uri_SinglePartition = [String]::Format("https://{0}/{1}/consumergroups/{2}/partitions/{3}?api-version=2015-01", $eventhubNamespace, $eventhubName, '$Default',$i)
+                    $SasToken = Get-SasToken -URI $EH_Rest_Uri_SinglePartition -KeyName $keyName -Key $key
 
-                #Retrieving Eventhub information
-                Write-Host "`tQuerying partition: #$i"
-                $EH_Rest_Uri_SinglePartition = [String]::Format("https://{0}/{1}/consumergroups/{2}/partitions/{3}?api-version=2015-01", $eventhubNamespace, $eventhubName, '$Default',$i)
-                $SasToken = Get-SasToken -URI $EH_Rest_Uri_SinglePartition -KeyName $keyName -Key $key
+                    $header = @{
+                        'Authorization'= "SharedAccessSignature $SasToken"
+                        'Content-Type' = 'application/atom+xml;type=entry;charset=utf-8'
+                    }
+            
+                    $response = Invoke-RestMethod -Method Get -Uri $EH_Rest_Uri_SinglePartition -Headers $header
+                    $Description = $response.entry.content.PartitionDescription
+                    $PartitionID = $response.entry.title.'#text'
+                    $BeginSequenceNumber = [long]::Parse($Description.BeginSequenceNumber)
+                    $EndSequenceNumber = [long]::Parse($Description.EndSequenceNumber)
+                    $IncomingBytesPerSecond = [long]::Parse($Description.IncomingBytesPerSecond)
+                    $OutgoingBytesPerSecond = [long]::Parse($Description.OutgoingBytesPerSecond)
+                    $LastEnqueuedOffSet = [long]::Parse($Description.LastEnqueuedOffset)
+                    $LastEnqueuedTimeUtc = ([Datetime]::Parse($Description.LastEnqueuedTimeUtc)).ToUniversalTime()
+                    $SizeInBytes = [long]::Parse($Description.SizeInBytes)
 
-                $header = @{
-                    'Authorization'= "SharedAccessSignature $SasToken"
-                    'Content-Type' = 'application/atom+xml;type=entry;charset=utf-8'
+                    $RestPartitionObj = [RestPartition]::new($PartitionID,$SizeInBytes, $BeginSequenceNumber,$EndSequenceNumber,$IncomingBytesPerSecond,$OutgoingBytesPerSecond,$LastEnqueuedOffSet,$LastEnqueuedTimeUtc)
+                    $RestPartitions.Add($RestPartitionObj) | Out-Null
                 }
-        
-                $response = Invoke-RestMethod -Method Get -Uri $EH_Rest_Uri_SinglePartition -Headers $header
-                $Description = $response.entry.content.PartitionDescription
-                $PartitionID = $response.entry.title.'#text'
-                $BeginSequenceNumber = [long]::Parse($Description.BeginSequenceNumber)
-                $EndSequenceNumber = [long]::Parse($Description.EndSequenceNumber)
-                $IncomingBytesPerSecond = [long]::Parse($Description.IncomingBytesPerSecond)
-                $OutgoingBytesPerSecond = [long]::Parse($Description.OutgoingBytesPerSecond)
-                $LastEnqueuedOffSet = [long]::Parse($Description.LastEnqueuedOffset)
-                $LastEnqueuedTimeUtc = ([Datetime]::Parse($Description.LastEnqueuedTimeUtc)).ToUniversalTime()
-                $SizeInBytes = [long]::Parse($Description.SizeInBytes)
-
-                $RestPartitionObj = [RestPartition]::new($PartitionID,$SizeInBytes, $BeginSequenceNumber,$EndSequenceNumber,$IncomingBytesPerSecond,$OutgoingBytesPerSecond,$LastEnqueuedOffSet,$LastEnqueuedTimeUtc)
-                $RestPartitions.Add($RestPartitionObj) | Out-Null
 
                 #Retrieving Blob information
                 Write-Host "`tDownloading blob: $ConsumerGroupFolder/$i"
@@ -411,38 +459,64 @@ function Get-PartitionsReport {
                 $elapsedString = [string]::Format("The total elapsed time to analyze partition #$i is: {0:c}", $ts)
 
                 Write-Verbose $elapsedString
-                Write-Host "`tDifference partition #$i`: $($RestPartitionObj.EndSequenceNumber-$PartitionsBlobObj.BlobSequenceNumber)`n"
+                if(!($ProcessorOnly.IsPresent)){
+                    Write-Host "`tDifference partition #$i`: $($RestPartitionObj.EndSequenceNumber-$PartitionsBlobObj.BlobSequenceNumber)`n"
+                }
+                
+            }
+            if(!($ProcessorOnly.IsPresent)){
+                $PartitionsCompare = [System.Collections.Generic.List[PartitionCompare]]::new()
+                $OutputFile = $FilePrefix + "_"+ (Get-date -Format "yyyyMMdd")
+                $RunID = Get-date -Format "yyyyMMddhhmm"
+                for ($ID = 0; $ID -lt $PartitionsBlobs.Count; $ID++) {
+    
+                    $RestPart = $RestPartitions | Where-Object {$_.PartitionID -eq $ID }
+                    $BlobPart = $PartitionsBlobs | Where-Object {$_.PartitionID -eq $ID }
+                    $PartitionsCompare.add([PartitionCompare]::new([long]::Parse($RunID),$BlobPart,$RestPart)) | Out-Null
+                }
+                
+                $OutputPath = $OutputPath.TrimEnd("/")
+    
+                If(!(Test-Path -Path $OutputPath)){
+                    New-Item -Path $OutputPath -ItemType Directory | Out-Null
+                }
+    
+                if(!(Test-path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv"))){
+                    New-item -ItemType File -Path $OutputPath -Name "$OutputFile.csv" | Out-Null
+                    "RunID,PartitionID,Difference,Owner,ProcessorSequence,EventHubSequence,LastModifiedBlobUTC,EventHubLastEnqueuedUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv")) -Append
+                }
+                
+                $PartitionsCompare | Export-Csv -Path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv") -Append -NoTypeInformation
+                
+                <#Removing until clip command will be available on all platform
+                if($Clipboard.IsPresent){
+                    ($PartitionsCompare | Sort-Object -Property PartitionID | ConvertTo-Csv -NoTypeInformation).Replace(",","`t") | clip
+                }
+                #>
+                return $PartitionsCompare
+            }
+            else{
+                $OutputFile = $FilePrefix + "_"+ (Get-date -Format "yyyyMMdd")
+                $OutputPath = $OutputPath.TrimEnd("/")
+    
+                If(!(Test-Path -Path $OutputPath)){
+                    New-Item -Path $OutputPath -ItemType Directory | Out-Null
+                }
+    
+                if(!(Test-path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv"))){
+                    New-item -ItemType File -Path $OutputPath -Name "$OutputFile.csv" | Out-Null
+                    "PartitionID,Owner,Epoch,BlobSequenceNumber,LastModifiedBlobUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv")) -Append
+                }
 
-            }
-            
-            $PartitionsCompare = [System.Collections.Generic.List[PartitionCompare]]::new()
-            $OutputFile = $FilePrefix + "_"+ (Get-date -Format "yyyyMMdd")
-            $RunID = Get-date -Format "yyyyMMddhhmm"
-            for ($ID = 0; $ID -lt $PartitionsBlobs.Count; $ID++) {
-
-                $RestPart = $RestPartitions | Where-Object {$_.PartitionID -eq $ID }
-                $BlobPart = $PartitionsBlobs | Where-Object {$_.PartitionID -eq $ID }
-                $PartitionsCompare.add([PartitionCompare]::new([long]::Parse($RunID),$BlobPart,$RestPart)) | Out-Null
-            }
-            
-            $OutputPath = $OutputPath.TrimEnd("/")
-
-            If(!(Test-Path -Path $OutputPath)){
-                New-Item -Path $OutputPath -ItemType Directory | Out-Null
+                $PartitionsBlobs | Export-Csv -Path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv") -Append -NoTypeInformation
+                <#
+                if($Clipboard.IsPresent){
+                    ($PartitionsBlobs | Sort-Object -Property PartitionID | ConvertTo-Csv -NoTypeInformation).Replace(",","`t") | Set-Clipboard
+                }
+                #>
+                return $PartitionsBlobs
             }
 
-            if(!(Test-path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv"))){
-                New-item -ItemType File -Path $OutputPath -Name "$OutputFile.csv" | Out-Null
-                "RunID,PartitionID,Difference,Owner,ProcessorSequence,EventHubSequence,LastModifiedBlobUTC,EventHubLastEnqueuedUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile,csv")) -Append
-            }
-            
-            $PartitionsCompare | Export-Csv -Path (Join-Path -Path $OutputPath -ChildPath "$OutputFile,csv") -Append -NoTypeInformation
-            
-            if($Clipboard.IsPresent){
-                ($PartitionsCompare | Sort-Object -Property PartitionID | ConvertTo-Csv -NoTypeInformation).Replace(",","`t") | clip
-            }
-            
-            return $PartitionsCompare
         }
         
         end {
@@ -451,4 +525,5 @@ function Get-PartitionsReport {
         }
     }
 
-Export-ModuleMember -Function Get-PartitionsReport
+Set-Alias -Name PartRep Get-PartitionsReport
+Export-ModuleMember -Function Get-PartitionsReport -Alias "PartRep"

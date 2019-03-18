@@ -1,0 +1,6 @@
+EventHubConnectionString=Endpoint=sb://mynamespace.servicebus.windows.net/;SharedAccessKeyName=myKeyName;SharedAccessKey=mySharedAccessKey;EntityPath=myeventHubname
+StorageName=mystoragename
+StorageKey=mystoragekey
+ContainerName=mycontainer
+ConsumerGroupFolder=myconsumer
+OutputPath=C:\Export
