@@ -1,57 +1,67 @@
-﻿#Requires -Module AzureRM.IoTHub
-<# 
+#Requires -Module Az.IotHub
+#Requires -PSEdition Core, Desktop
+#Requires -Version 5.1
+
+function New-IotHubProperties {
+    <# 
  .Synopsis
-  Create an object to set desired PartitionsCount and RetentionTimeInDays for New-AzureRmIotHub cmdlet.
+  Create an object to set desired PartitionsCount and RetentionTimeInDays for New-AzIotHub cmdlet.
 
  .Description
-  Create an object to set desired PartitionsCount and RetentionTimeInDays for New-AzureRmIotHub cmdlet.
-  The object created must be passed to -Properties param of New-AzureRmIotHub command. It is recommended to store it in a variable.
+  Create an object to set desired PartitionsCount and RetentionTimeInDays for New-AzIotHub cmdlet.
+  The object created must be passed to -Properties param of New-AzIotHub command. It is recommended to store it in a variable.
 
- .Parameter PartitionCount
-  The desired partitions number.
+ .Parameter PartitionsCount
+  The desired partitions number (min 2, MAX 128)
 
  .Parameter RetentionTimeInDays
-  The desired RetentionTimeInDays number.
+  The desired RetentionTimeInDays number (min 1, MAX 7)
 
  .Example
    # Create an PSIotHubInputProperties object with 32 Partitions and 2 days of retention.
-   Create-IotHubProperties -PartitionCount 32 -RetentionTimeInDays 2
+   New-IotHubProperties -PartitionsCount 32 -RetentionTimeInDays 2
 
  .Example
    # Create an PSIotHubInputProperties object with 8 Partitions and 1 day of retention.
-   Create-IotHubProperties -PartitionCount 8
+   New-IotHubProperties -Partitions 8
 
  .Example
    # Create an PSIotHubInputProperties object with 32 Partitions and 2 days of retention and store it in a variable.
-   $IotHubInputProperties = Create-IotHubProperties -PartitionCount 32 -RetentionTimeInDays 2
+   $IotHubInputProperties = New-IotHubProperties -Partitions 32 -Retention 2
 
+   .Link
+   https://github.com/Stereo89/Azereo/tree/master/New-IotHubProperties
+   
 #>
 
-function New-IotHubProperties {
+[OutputType('Microsoft.Azure.Commands.Management.IotHub.Models.PSIotHubInputProperties')]
+
     Param(
         [Parameter(Mandatory=$True,ValueFromPipeline=$true)]
         [ValidateRange(2,128)]
-        [Int]
-        $PartitionCount,
+        [Alias("Partitions")]
+        [int16]
+        $PartitionsCount,
         [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
         [ValidateRange(1,7)]
-        [Int]
+        [Alias("Retention")]
+        [int16]
         $RetentionTimeInDays = 1
         ) 
     Process 
     { 
-       $IoTHubInputProps = New-Object -TypeName Microsoft.Azure.Commands.Management.IotHub.Models.PSIotHubInputProperties
-       $EventHUbInputProps = [Microsoft.Azure.Commands.Management.IotHub.Models.PSEventHubInputProperties]::new()
+       $IotHubInputProps = [Microsoft.Azure.Commands.Management.IotHub.Models.PSIotHubInputProperties]::new()
+       $EventHubInputProps = [Microsoft.Azure.Commands.Management.IotHub.Models.PSEventHubInputProperties]::new()
        $EventHubInputProps.PartitionCount = $PartitionCount
-       $EventHUbInputProps.RetentionTimeInDays = $RetentionTimeInDays
+       $EventHubInputProps.RetentionTimeInDays = $RetentionTimeInDays
 
        $Dictionary = New-Object 'System.Collections.Generic.Dictionary[string,Microsoft.Azure.Commands.Management.IotHub.Models.PSEventHubInputProperties]'
 
-       $Dictionary.Add([string]"events",[Microsoft.Azure.Commands.Management.IotHub.Models.PSEventHubInputProperties]$EventHUbInputProps)
+       $Dictionary.Add([string]"events",[Microsoft.Azure.Commands.Management.IotHub.Models.PSEventHubInputProperties]$EventHubInputProps)
 
-       $IoTHubInputProps.EventHubEndpoints = $dictionary
+       $IotHubInputProps.EventHubEndpoints = $dictionary
 
-       return $IoTHubInputProps
+       return $IotHubInputProps
    } 
 
 }
