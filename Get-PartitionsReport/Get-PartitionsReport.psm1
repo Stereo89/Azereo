@@ -1,5 +1,6 @@
 #Requires -Modules Az.Storage
-#Requires -PSEdition Core
+#Requires -PSEdition Core, Desktop
+#Requires -Version 5.1
 function Get-PartitionsReport {
 <# 
  .SYNOPSIS
