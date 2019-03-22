@@ -184,13 +184,13 @@ function Get-PartitionsReport {
                     $StorageKey = $match.Groups[1].ToString()
 
                     $ContainerName = ($inputFileContent | Where-Object {$_.StartsWith("ContainerName=")}).Trim()
-                    $pattern = "ContainerName=(\w+)"
+                    $pattern = "ContainerName=([^;|^`n]*)"
                     $regex = [Regex]::new($pattern)
                     $match = $regex.Match($ContainerName)
                     $ContainerName = $match.Groups[1].ToString()
 
                     $ConsumerGroupFolder = ($inputFileContent | Where-Object {$_.StartsWith("ConsumerGroupFolder=")}).Trim()
-                    $pattern = "ConsumerGroupFolder=(\w+)"
+                    $pattern = "ConsumerGroupFolder=([^;|^`n]*)"
                     $regex = [Regex]::new($pattern)
                     $match = $regex.Match($ConsumerGroupFolder)
                     $ConsumerGroupFolder = $match.Groups[1].ToString()
@@ -317,7 +317,7 @@ function Get-PartitionsReport {
 
             $tempFolder = [System.IO.Path]::GetTempPath()
             $tempGUID = [System.Guid]::NewGuid().ToString("N")
-            $consumerTempFolder = Join-Path -Path $tempFolder -ChildPath $tempGUID -AdditionalChildPath $ConsumerGroupFolder
+            $consumerTempFolder = Join-Path -Path $tempFolder -ChildPath (Join-Path -Path $tempGUID -ChildPath $ConsumerGroupFolder)
             if(!(Test-path $consumerTempFolder)){
                 New-Item -ItemType Directory -Path $consumerTempFolder | Out-Null
             }
