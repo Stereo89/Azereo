@@ -35,16 +35,19 @@ Switch to get only Processor info (on storage).
 
 ##  .EXAMPLE
 ## Create a report on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
+```powershell
     Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath C:\Export\
-
+```
 ## .EXAMPLE
 ## Create a report on directory C:\Export\
+```powershell
     Get-PartitionsReport -EventHubConnectionString <EventHubConnectionString> -StorageName <StorageName> -StorageKey <StorageKey> -ContainerName <ContainerName> -ConsumerGroupFolder <ConsumerGroupFolder> -OutputPath "C:\Export\"
-
+```
 ## .EXAMPLE
 ## Create a report of the Processor blobs status on directory C:\Export\ getting parameter from file C:\users\<username>\inputFile.txt
+```powershell
     Get-PartitionsReport -InputFile C:\users\<username>\inputFile.txt -OutputPath "C:\Export\" -ProcessorOnly
-
+```
 ## .OUTPUTS
   A .csv file (file name will be in the form eventhubname_yyyyMMdd.csv or eventhubnamePO_yyyyMMdd.csv in case of ProcessorOnly switch)
   PartitionBlob list object in case of -ProcessorOnly switch
