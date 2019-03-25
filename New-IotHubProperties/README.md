@@ -15,16 +15,19 @@ The desired RetentionTimeInDays number (min 1, MAX 7)
 
 ##  .EXAMPLE
 ## Create an PSIotHubInputProperties object with 32 Partitions and 2 days of retention.
+```powershell
     New-IotHubProperties -PartitionsCount 32 -RetentionTimeInDays 2
-
+```
 ## .EXAMPLE
 ## Create an PSIotHubInputProperties object with 8 Partitions and 1 day of retention.
+```powershell
     New-IotHubProperties -Partitions 8
-
+```
 ## .EXAMPLE
 ## Create an PSIotHubInputProperties object with 32 Partitions and 2 days of retention and store it in a variable.
+```powershell
     $IotHubInputProperties = New-IotHubProperties -Partitions 32 -Retention 2
-
+```
 ## .OUTPUTS
   [Microsoft.Azure.Commands.Management.IotHub.Models.PSIotHubInputProperties] object 
 
