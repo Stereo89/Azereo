@@ -39,6 +39,16 @@
             <Alignment>Right</Alignment>
           </TableColumnHeader>
           <TableColumnHeader>
+            <Label>ProcessorOffset</Label>
+            <Width>17</Width>
+            <Alignment>Right</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>EventHubOffset</Label>
+            <Width>17</Width>
+            <Alignment>Right</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
             <Label>LastModifiedBlobUTC</Label>
             <Width>19</Width>
             <Alignment>Left</Alignment>
@@ -69,6 +79,12 @@
             </TableColumnItem>
             <TableColumnItem>
               <PropertyName>EventHubSequence</PropertyName>
+            </TableColumnItem>
+              <TableColumnItem>
+              <PropertyName>ProcessorOffset</PropertyName>
+            </TableColumnItem>
+            <TableColumnItem>
+              <PropertyName>EventHubOffset</PropertyName>
             </TableColumnItem>
             <TableColumnItem>
               <PropertyName>LastModifiedBlobUTC</PropertyName>

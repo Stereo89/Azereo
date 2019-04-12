@@ -29,6 +29,11 @@
             <Alignment>Right</Alignment>
           </TableColumnHeader>
           <TableColumnHeader>
+            <Label>BlobOffset</Label>
+            <Width>18</Width>
+            <Alignment>Right</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
             <Label>LastModifiedBlobUTC</Label>
             <Width>19</Width>
             <Alignment>Left</Alignment>
@@ -48,6 +53,9 @@
               </TableColumnItem>
               <TableColumnItem>
                 <PropertyName>BlobSequenceNumber</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>BlobOffset</PropertyName>
               </TableColumnItem>
               <TableColumnItem>
                 <PropertyName>LastModifiedBlobUTC</PropertyName>

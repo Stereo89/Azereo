@@ -264,14 +264,16 @@ function Get-PartitionsReport {
                 [string] $Owner
                 [ValidateNotNullOrEmpty()][long] $Epoch
                 [ValidateNotNullOrEmpty()][long] $BlobSequenceNumber
+                [ValidateNotNullOrEmpty()][long] $BlobOffset
                 [ValidateNotNullOrEmpty()][DateTime] $LastModifiedBlobUTC
 
-                PartitionBlob([int] $PartitionID, [string] $Owner, [long] $Epoch, [long] $BlobSequenceNumber, [DateTime] $LastModifiedBlobUTC)
+                PartitionBlob([int] $PartitionID, [string] $Owner, [long] $Epoch, [long] $BlobSequenceNumber, [long] $BlobOffset, [DateTime] $LastModifiedBlobUTC)
                 {
                     $this.PartitionID = $PartitionID
                     $this.Owner = $Owner
                     $this.Epoch = $Epoch
                     $this.BlobSequenceNumber = $BlobSequenceNumber
+                    $this.BlobOffset = $BlobOffset
                     $this.LastModifiedBlobUTC = $LastModifiedBlobUTC
                 }
 
@@ -285,10 +287,12 @@ function Get-PartitionsReport {
                 [string] $Owner
                 [ValidateNotNullOrEmpty()][long] $ProcessorSequence
                 [ValidateNotNullOrEmpty()][long] $EventHubSequence
+                [ValidateNotNullOrEmpty()][long] $ProcessorOffset
+                [ValidateNotNullOrEmpty()][long] $EventHubOffset
                 [ValidateNotNullOrEmpty()][DateTime] $LastModifiedBlobUTC
                 [ValidateNotNullOrEmpty()][DateTime] $EventHubLastEnqueuedUTC
 
-                PartitionCompare([long] $RunID,[int] $PartitionID, [string] $Owner, [long] $ProcessorSequence, [long] $EventHubSequence, [DateTime] $LastModifiedBlobUTC, [DateTime] $EventHubLastEnqueuedUTC)
+                PartitionCompare([long] $RunID,[int] $PartitionID, [string] $Owner, [long] $ProcessorSequence, [long] $EventHubSequence, [long] $ProcessorOffset, [long] $EventHubOffset, [DateTime] $LastModifiedBlobUTC, [DateTime] $EventHubLastEnqueuedUTC)
                 {
                     $this.RunID = $RunID
                     $this.PartitionID = $PartitionID
@@ -296,6 +300,8 @@ function Get-PartitionsReport {
                     $this.ProcessorSequence = $ProcessorSequence
                     $this.EventHubSequence = $EventHubSequence
                     $this.Difference = $EventHubSequence - $ProcessorSequence
+                    $this.$ProcessorOffset = $ProcessorOffset
+                    $this.$EventHubOffset = $EventHubOffset
                     $this.LastModifiedBlobUTC = $LastModifiedBlobUTC
                     $this.EventHubLastEnqueuedUTC = $EventHubLastEnqueuedUTC
                 }
@@ -307,7 +313,10 @@ function Get-PartitionsReport {
                     $this.Owner = $partitionBlob.Owner
                     $this.ProcessorSequence = $partitionBlob.BlobSequenceNumber
                     $this.EventHubSequence = $restPartition.EndSequenceNumber
+                    $this.ProcessorOffset = $partitionBlob.BlobOffset
+                    $this.EventHubOffset = $restPartition.LastEnqueuedOffset
                     $this.Difference = $this.EventHubSequence - $this.ProcessorSequence
+
                     $this.LastModifiedBlobUTC = $partitionBlob.LastModifiedBlobUTC
                     $this.EventHubLastEnqueuedUTC = $restPartition.LastEnqueuedTimeUtc
                 }
@@ -445,14 +454,15 @@ function Get-PartitionsReport {
                     } 
                     catch [System.Exception] { 
                         Write-Verbose "`tRetrying..."
+                        Start-Sleep -Seconds 1
                         $Failed = $true
                     }
                 } while ($Failed)
 
                 $blobContent = Get-Content -Path $BlobFullPath
                 $blobJson = ConvertFrom-Json -InputObject $blobContent
-
-                $PartitionsBlobObj = [PartitionBlob]::new([int]::Parse($blobJson.PartitionId),$blobJson.Owner,[long]::Parse($blobJson.Epoch),[long]::Parse($blobJson.SequenceNumber),$blob.LastModified.ToUniversalTime().UtcDateTime)
+                if($blobJson.SequenceNumber -lt $RestPartitionObj.BeginSequenceNumber){$blobJson.SequenceNumber = $RestPartitionObj.BeginSequenceNumber}
+                $PartitionsBlobObj = [PartitionBlob]::new([int]::Parse($blobJson.PartitionId),$blobJson.Owner,[long]::Parse($blobJson.Epoch),[long]::Parse($blobJson.SequenceNumber),[long]::Parse($blobJson.Offset), $blob.LastModified.ToUniversalTime().UtcDateTime)
                 $PartitionsBlobs.Add($PartitionsBlobObj) | Out-Null
 
                 $endElaboration = Get-Date
@@ -468,7 +478,7 @@ function Get-PartitionsReport {
             if(!($ProcessorOnly.IsPresent)){
                 $PartitionsCompare = [System.Collections.Generic.List[PartitionCompare]]::new()
                 $OutputFile = $FilePrefix + "_"+ (Get-date -Format "yyyyMMdd")
-                $RunID = Get-date -Format "yyyyMMddhhmm"
+                $RunID = Get-date -Format "yyyyMMddHHmm"
                 for ($ID = 0; $ID -lt $PartitionsBlobs.Count; $ID++) {
     
                     $RestPart = $RestPartitions | Where-Object {$_.PartitionID -eq $ID }
@@ -484,7 +494,7 @@ function Get-PartitionsReport {
     
                 if(!(Test-path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv"))){
                     New-item -ItemType File -Path $OutputPath -Name "$OutputFile.csv" | Out-Null
-                    "RunID,PartitionID,Difference,Owner,ProcessorSequence,EventHubSequence,LastModifiedBlobUTC,EventHubLastEnqueuedUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv")) -Append
+                    "RunID,PartitionID,Difference,Owner,ProcessorSequence,EventHubSequence,ProcessorOffset,EventHubOffset,LastModifiedBlobUTC,EventHubLastEnqueuedUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv")) -Append
                 }
                 
                 $PartitionsCompare | Export-Csv -Path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv") -Append -NoTypeInformation
@@ -506,7 +516,7 @@ function Get-PartitionsReport {
     
                 if(!(Test-path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv"))){
                     New-item -ItemType File -Path $OutputPath -Name "$OutputFile.csv" | Out-Null
-                    "PartitionID,Owner,Epoch,BlobSequenceNumber,LastModifiedBlobUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv")) -Append
+                    "PartitionID,Owner,Epoch,BlobSequenceNumber,Offset,LastModifiedBlobUTC" | Out-File -FilePath ((Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv")) -Append
                 }
 
                 $PartitionsBlobs | Export-Csv -Path (Join-Path -Path $OutputPath -ChildPath "$OutputFile.csv") -Append -NoTypeInformation
