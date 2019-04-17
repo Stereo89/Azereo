@@ -41,7 +41,7 @@ function New-IotHubProperties {
         [ValidateRange(2,128)]
         [Alias("Partitions")]
         [int16]
-        $PartitionsCount,
+        $PartitionCount,
         [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
         [ValidateRange(1,7)]
         [Alias("Retention")]
