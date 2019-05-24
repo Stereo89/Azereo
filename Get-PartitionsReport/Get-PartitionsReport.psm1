@@ -462,6 +462,7 @@ function Get-PartitionsReport {
                 $blobContent = Get-Content -Path $BlobFullPath
                 $blobJson = ConvertFrom-Json -InputObject $blobContent
                 if($blobJson.SequenceNumber -lt $RestPartitionObj.BeginSequenceNumber){$blobJson.SequenceNumber = $RestPartitionObj.BeginSequenceNumber}
+                if([string]::IsNullOrEmpty($blobJson.Offset)) {$blobJson.Offset = "0"}
                 $PartitionsBlobObj = [PartitionBlob]::new([int]::Parse($blobJson.PartitionId),$blobJson.Owner,[long]::Parse($blobJson.Epoch),[long]::Parse($blobJson.SequenceNumber),[long]::Parse($blobJson.Offset), $blob.LastModified.ToUniversalTime().UtcDateTime)
                 $PartitionsBlobs.Add($PartitionsBlobObj) | Out-Null
 
